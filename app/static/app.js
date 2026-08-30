@@ -1,4 +1,4 @@
-// StreamPicker Complete Client Application - FlickPicker UX Overhaul
+// StreamPicker Client Application - Universal URL Link Engine & Resilient Fallback Image Loader
 
 let currentTab = 'pick';
 let activeMood = 'Mind-Bending';
@@ -34,6 +34,69 @@ async function authFetch(url, options = {}) {
         headers['Authorization'] = `Bearer ${token}`;
     }
     return fetch(url, { ...options, headers });
+}
+
+// ==================== STREAMING URL & IMAGE FALLBACK RESOLVERS ====================
+
+function getWatchLink(streamOption, titleName) {
+    const title = titleName || (streamOption && streamOption.title) || '';
+    const query = encodeURIComponent(title);
+    const providerId = (streamOption?.provider_id || '').toLowerCase();
+
+    // Mobile / native app direct intent if user explicitly requested iOS/Android
+    if (selectedDevice !== 'web' && streamOption?.deep_link) {
+        return streamOption.deep_link;
+    }
+
+    // Direct web URL if valid https link
+    if (streamOption?.web_url && streamOption.web_url.startsWith('http')) {
+        return streamOption.web_url;
+    }
+
+    // High reliability direct web search URLs per platform
+    if (providerId.includes('prime') || providerId.includes('amazon')) {
+        return `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${query}`;
+    } else if (providerId.includes('netflix')) {
+        return `https://www.netflix.com/search?q=${query}`;
+    } else if (providerId.includes('hotstar') || providerId.includes('disney')) {
+        return `https://www.hotstar.com/in/explore?search_query=${query}`;
+    } else if (providerId.includes('jio')) {
+        return `https://www.jiocinema.com/search/${query}`;
+    } else if (providerId.includes('apple')) {
+        return `https://tv.apple.com/search?term=${query}`;
+    } else if (providerId.includes('sonyliv')) {
+        return `https://www.sonyliv.com/search/${query}`;
+    } else if (providerId.includes('zee5')) {
+        return `https://www.zee5.com/search?q=${query}`;
+    }
+
+    return `https://www.google.com/search?q=watch+${query}+online+streaming`;
+}
+
+function handleImageFallback(imgEl, title) {
+    imgEl.onerror = null;
+    const safeTitle = (title || 'StreamPicker Movie').replace(/</g, '&lt;').replace(/>/g, '&gt;').substring(0, 30);
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="500" height="750" viewBox="0 0 500 750">
+            <defs>
+                <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#1e1b4b;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#0f172a;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#3b0764;stop-opacity:1" />
+                </linearGradient>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#g)" />
+            <circle cx="250" cy="300" r="65" fill="#6366f1" opacity="0.25" />
+            <polygon points="238,275 278,300 238,325" fill="#a855f7" />
+            <text x="50%" y="440" dominant-baseline="middle" text-anchor="middle" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="24" font-weight="800">
+                ${safeTitle}
+            </text>
+            <text x="50%" y="480" dominant-baseline="middle" text-anchor="middle" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600">
+                StreamPicker Spotlight
+            </text>
+        </svg>
+    `;
+    imgEl.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg.trim());
 }
 
 function setupEventListeners() {
@@ -532,6 +595,7 @@ function renderPickResult(data, latencyMs) {
     const t = data.title;
     const stream = data.best_stream_option;
     const isSaved = watchlist.some(w => w.title_id === t.id);
+    const watchLink = getWatchLink(stream, t.title);
 
     container.classList.remove('hidden');
     container.innerHTML = `
@@ -567,10 +631,12 @@ function renderPickResult(data, latencyMs) {
             <!-- Content Card -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 pt-6 items-center">
                 <div class="md:col-span-4 shrink-0 relative group">
-                    <img src="${t.poster_url}" alt="${t.title}" class="w-full h-96 object-cover rounded-2xl shadow-2xl border border-slate-700">
+                    <img src="${t.poster_url}" alt="${t.title}" 
+                        onerror="handleImageFallback(this, '${t.title.replace(/'/g, "\\'")}')"
+                        class="w-full h-96 object-cover rounded-2xl shadow-2xl border border-slate-700">
                     ${t.trailer_url ? `
                         <button onclick="openTrailerModal('${t.trailer_url}', '${t.title.replace(/'/g, "\\'")}')" 
-                            class="absolute inset-0 m-auto w-14 h-14 rounded-full bg-black/70 backdrop-blur-md border border-white/30 text-white flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+                            class="absolute inset-0 m-auto w-14 h-14 rounded-full bg-black/70 backdrop-blur-md border border-white/30 text-white flex items-center justify-center shadow-2xl hover:scale-110 transition-transform cursor-pointer">
                             <i data-lucide="play" class="w-6 h-6 fill-white ml-0.5"></i>
                         </button>
                     ` : ''}
@@ -607,7 +673,7 @@ function renderPickResult(data, latencyMs) {
                     <!-- Direct Launch CTA -->
                     <div class="space-y-3 pt-2">
                         ${stream ? `
-                            <a href="${stream.deep_link || stream.web_url}" target="_blank" 
+                            <a href="${watchLink}" target="_blank" rel="noopener noreferrer" 
                                 class="w-full py-4 px-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-heading font-extrabold text-base flex items-center justify-center space-x-2 shadow-xl shadow-emerald-600/40 transition-all transform hover:-translate-y-0.5 cursor-pointer">
                                 <i data-lucide="play" class="w-5 h-5 fill-white"></i>
                                 <span>Watch Now on ${stream.provider_name} (${stream.access_type === 'flatrate' ? 'Included in Your Plan' : stream.access_type})</span>
@@ -657,7 +723,6 @@ function openTrailerModal(trailerUrl, title) {
 
     if (titleEl) titleEl.textContent = `${title} — Official Trailer`;
 
-    // Extract YouTube video ID
     let videoId = 'uYPbbksJxIg';
     if (trailerUrl.includes('v=')) {
         videoId = trailerUrl.split('v=')[1].split('&')[0];
@@ -752,6 +817,7 @@ function renderGroupPickResult(data) {
 
     const t = data.chosen_title;
     const isSaved = watchlist.some(w => w.title_id === t.id);
+    const watchLink = getWatchLink(t.providers && t.providers[0], t.title);
 
     container.classList.remove('hidden');
     container.innerHTML = `
@@ -772,7 +838,9 @@ function renderGroupPickResult(data) {
 
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 pt-6">
                 <div class="md:col-span-4 shrink-0">
-                    <img src="${t.poster_url}" alt="${t.title}" class="w-full h-80 object-cover rounded-2xl shadow-xl border border-slate-700">
+                    <img src="${t.poster_url}" alt="${t.title}" 
+                        onerror="handleImageFallback(this, '${t.title.replace(/'/g, "\\'")}')"
+                        class="w-full h-80 object-cover rounded-2xl shadow-xl border border-slate-700">
                 </div>
                 <div class="md:col-span-8 flex flex-col justify-between space-y-4">
                     <div>
@@ -797,7 +865,7 @@ function renderGroupPickResult(data) {
 
                     <div class="space-y-3 pt-2">
                         ${t.providers.length > 0 ? `
-                            <a href="${t.providers[0].deep_link || t.providers[0].web_url}" target="_blank" 
+                            <a href="${watchLink}" target="_blank" rel="noopener noreferrer" 
                                 class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-indigo-600 hover:from-rose-500 hover:to-indigo-500 text-white font-heading font-bold text-sm flex items-center justify-center space-x-2 shadow-lg transition-all cursor-pointer">
                                 <i data-lucide="play" class="w-4 h-4 fill-white"></i>
                                 <span>Start Streaming on ${t.providers[0].provider_name}</span>
@@ -877,6 +945,8 @@ async function loadRoomArena(roomCode) {
         if (!res.ok) return;
         const state = await res.json();
 
+        const winningLink = state.winning_title ? getWatchLink(state.winning_title.providers && state.winning_title.providers[0], state.winning_title.title) : '#';
+
         arena.classList.remove('hidden');
         arena.innerHTML = `
             <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-700">
@@ -895,7 +965,9 @@ async function loadRoomArena(roomCode) {
             ${state.winning_title ? `
                 <div class="p-4 rounded-xl bg-gradient-to-r from-emerald-950 to-slate-900 border border-emerald-500/50 flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div class="flex items-center space-x-3">
-                        <img src="${state.winning_title.poster_url}" class="w-14 h-20 object-cover rounded-lg">
+                        <img src="${state.winning_title.poster_url}" 
+                            onerror="handleImageFallback(this, '${state.winning_title.title.replace(/'/g, "\\'")}')"
+                            class="w-14 h-20 object-cover rounded-lg">
                         <div>
                             <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300">👑 Current Group Favorite</span>
                             <h3 class="font-heading font-bold text-base text-white">${state.winning_title.title}</h3>
@@ -903,7 +975,7 @@ async function loadRoomArena(roomCode) {
                         </div>
                     </div>
                     ${state.winning_title.providers && state.winning_title.providers[0] ? `
-                        <a href="${state.winning_title.providers[0].deep_link || state.winning_title.providers[0].web_url}" target="_blank" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center gap-2">
+                        <a href="${winningLink}" target="_blank" rel="noopener noreferrer" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-lg flex items-center gap-2">
                             <i data-lucide="play" class="w-4 h-4 fill-white"></i>
                             <span>Stream Now</span>
                         </a>
@@ -917,7 +989,9 @@ async function loadRoomArena(roomCode) {
                     ${state.candidates.map(c => `
                         <div class="glass-card p-3 rounded-xl flex items-center justify-between">
                             <div class="flex items-center space-x-3">
-                                <img src="${c.title.poster_url}" class="w-12 h-16 object-cover rounded-lg">
+                                <img src="${c.title.poster_url}" 
+                                    onerror="handleImageFallback(this, '${c.title.title.replace(/'/g, "\\'")}')"
+                                    class="w-12 h-16 object-cover rounded-lg">
                                 <div>
                                     <h5 class="font-bold text-xs text-white line-clamp-1">${c.title.title}</h5>
                                     <span class="text-[11px] text-slate-400">⭐ ${c.title.rating_imdb} • Score: <strong>${c.score}</strong></span>
@@ -1002,11 +1076,14 @@ function renderCatalogCards(titles) {
         const isSaved = watchlist.some(w => w.title_id === t.id);
         const subProvider = t.providers.find(p => p.is_in_user_subscription);
         const bestProvider = subProvider || t.providers[0];
+        const watchLink = getWatchLink(bestProvider, t.title);
 
         return `
             <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between group">
                 <div class="relative">
-                    <img src="${t.poster_url}" alt="${t.title}" class="w-full h-60 object-cover transition-transform duration-300 group-hover:scale-105">
+                    <img src="${t.poster_url}" alt="${t.title}" 
+                        onerror="handleImageFallback(this, '${t.title.replace(/'/g, "\\'")}')"
+                        class="w-full h-60 object-cover transition-transform duration-300 group-hover:scale-105">
                     <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent opacity-90"></div>
                     
                     <div class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-[11px] font-bold text-amber-300 border border-amber-500/30 flex items-center gap-1">
@@ -1046,7 +1123,7 @@ function renderCatalogCards(titles) {
                                 Details
                             </button>
                             ${bestProvider ? `
-                                <a href="${bestProvider.deep_link || bestProvider.web_url}" target="_blank" 
+                                <a href="${watchLink}" target="_blank" rel="noopener noreferrer" 
                                     class="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1 shadow-sm">
                                     <i data-lucide="play" class="w-3 h-3 fill-white"></i>
                                     <span>Stream</span>
@@ -1098,11 +1175,14 @@ function renderWatchlist() {
         const t = w.title;
         const subProvider = t.providers.find(p => p.is_in_user_subscription);
         const bestProvider = subProvider || t.providers[0];
+        const watchLink = getWatchLink(bestProvider, t.title);
 
         return `
             <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between">
                 <div class="relative">
-                    <img src="${t.poster_url}" alt="${t.title}" class="w-full h-52 object-cover">
+                    <img src="${t.poster_url}" alt="${t.title}" 
+                        onerror="handleImageFallback(this, '${t.title.replace(/'/g, "\\'")}')"
+                        class="w-full h-52 object-cover">
                     <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent opacity-90"></div>
                     <button onclick="removeWatchlist('${t.id}')" class="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-black/70 text-slate-400 hover:text-rose-400 transition-colors">
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -1120,7 +1200,7 @@ function renderWatchlist() {
 
                     <div class="space-y-2 pt-2 border-t border-slate-800">
                         ${bestProvider ? `
-                            <a href="${bestProvider.deep_link || bestProvider.web_url}" target="_blank" 
+                            <a href="${watchLink}" target="_blank" rel="noopener noreferrer" 
                                 class="w-full py-2 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm">
                                 <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
                                 <span>Watch on ${bestProvider.provider_name}</span>
@@ -1309,10 +1389,12 @@ async function loadAlerts() {
             } else {
                 container.innerHTML = alerts.map(a => `
                     <div class="p-3 rounded-xl bg-slate-900 border border-slate-700 flex items-start space-x-3">
-                        <img src="${a.poster_url}" class="w-10 h-14 object-cover rounded-lg shrink-0">
+                        <img src="${a.poster_url}" 
+                            onerror="handleImageFallback(this, '${a.title_name.replace(/'/g, "\\'")}')"
+                            class="w-10 h-14 object-cover rounded-lg shrink-0">
                         <div class="flex-1">
                             <p class="text-xs font-semibold text-slate-200 leading-snug">${a.message}</p>
-                            <a href="${a.action_url}" target="_blank" class="inline-flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 font-bold mt-1.5">
+                            <a href="${a.action_url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 text-[11px] text-indigo-400 hover:text-indigo-300 font-bold mt-1.5">
                                 <span>Watch on ${a.provider_name}</span>
                                 <i data-lucide="external-link" class="w-3 h-3"></i>
                             </a>
@@ -1390,10 +1472,14 @@ async function triggerVibeSearch() {
                 ${data.results.map(r => {
                     const t = r.title;
                     const stream = r.best_stream_option;
+                    const watchLink = getWatchLink(stream, t.title);
+
                     return `
                         <div class="glass-card rounded-2xl overflow-hidden flex flex-col justify-between">
                             <div class="relative">
-                                <img src="${t.poster_url}" alt="${t.title}" class="w-full h-48 object-cover">
+                                <img src="${t.poster_url}" alt="${t.title}" 
+                                    onerror="handleImageFallback(this, '${t.title.replace(/'/g, "\\'")}')"
+                                    class="w-full h-48 object-cover">
                                 <div class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-purple-900/80 backdrop-blur-md text-[11px] font-bold text-purple-200 border border-purple-500/40">
                                     ${r.semantic_score}% Vibe Match
                                 </div>
@@ -1410,7 +1496,7 @@ async function triggerVibeSearch() {
                                 <div class="pt-2 border-t border-slate-800 flex gap-2">
                                     <button onclick="openModal('${t.id}')" class="flex-1 py-1.5 px-3 rounded-xl bg-slate-800 text-slate-200 text-xs font-semibold">Details</button>
                                     ${stream ? `
-                                        <a href="${stream.deep_link || stream.web_url}" target="_blank" class="py-1.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1">
+                                        <a href="${watchLink}" target="_blank" rel="noopener noreferrer" class="py-1.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1">
                                             <i data-lucide="play" class="w-3 h-3 fill-white"></i>
                                             <span>Stream</span>
                                         </a>
@@ -1470,7 +1556,9 @@ async function openModal(titleId) {
                 ` : ''}
 
                 <div class="flex gap-4">
-                    <img src="${t.poster_url}" alt="${t.title}" class="w-28 h-40 object-cover rounded-xl shadow-lg shrink-0">
+                    <img src="${t.poster_url}" alt="${t.title}" 
+                        onerror="handleImageFallback(this, '${t.title.replace(/'/g, "\\'")}')"
+                        class="w-28 h-40 object-cover rounded-xl shadow-lg shrink-0">
                     <div>
                         <div class="flex items-center gap-2 mb-1 text-xs">
                             <span class="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase">${t.type}</span>
@@ -1494,24 +1582,27 @@ async function openModal(titleId) {
                 <div>
                     <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Streaming Availability (${selectedDevice.toUpperCase()})</h4>
                     <div class="space-y-2">
-                        ${t.providers.map(p => `
-                            <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-center justify-between">
-                                <div class="flex items-center space-x-3">
-                                    <div class="w-3 h-3 rounded-full" style="background-color: ${p.brand_color}"></div>
-                                    <div>
-                                        <div class="text-xs font-bold text-white flex items-center gap-1.5">
-                                            <span>${p.provider_name}</span>
-                                            ${p.is_in_user_subscription ? '<span class="text-[10px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-semibold">Included in your plan</span>' : ''}
+                        ${t.providers.map(p => {
+                            const pWatchLink = getWatchLink(p, t.title);
+                            return `
+                                <div class="p-3 rounded-xl bg-slate-900/90 border border-slate-700/80 flex items-center justify-between">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-3 h-3 rounded-full" style="background-color: ${p.brand_color}"></div>
+                                        <div>
+                                            <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                                                <span>${p.provider_name}</span>
+                                                ${p.is_in_user_subscription ? '<span class="text-[10px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-semibold">Included in your plan</span>' : ''}
+                                            </div>
+                                            <div class="text-[11px] text-slate-400 capitalize">${p.access_type} ${p.price ? `• ₹${p.price}` : ''}</div>
                                         </div>
-                                        <div class="text-[11px] text-slate-400 capitalize">${p.access_type} ${p.price ? `• ₹${p.price}` : ''}</div>
                                     </div>
+                                    <a href="${pWatchLink}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1">
+                                        <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+                                        <span>Stream</span>
+                                    </a>
                                 </div>
-                                <a href="${p.deep_link || p.web_url}" target="_blank" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1">
-                                    <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
-                                    <span>Stream</span>
-                                </a>
-                            </div>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </div>
                 </div>
 
@@ -1524,7 +1615,9 @@ async function openModal(titleId) {
                         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                             ${sim.similar_titles.map(st => `
                                 <div onclick="openModal('${st.title.id}')" class="glass-card p-2 rounded-xl cursor-pointer hover:border-indigo-500/50 transition-all">
-                                    <img src="${st.title.poster_url}" class="w-full h-28 object-cover rounded-lg mb-2">
+                                    <img src="${st.title.poster_url}" 
+                                        onerror="handleImageFallback(this, '${st.title.title.replace(/'/g, "\\'")}')"
+                                        class="w-full h-28 object-cover rounded-lg mb-2">
                                     <h5 class="text-xs font-bold text-white line-clamp-1">${st.title.title}</h5>
                                     <span class="text-[10px] text-emerald-400 font-semibold">${st.similarity_score}% Similar</span>
                                 </div>
