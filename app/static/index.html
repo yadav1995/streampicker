@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StreamPicker — Find What to Watch in 30 Seconds, Solo or Together</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        dark: {
+                            900: '#070a12',
+                            800: '#0e1424',
+                            700: '#141d33',
+                            600: '#1f2b48',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-dark-900 text-slate-100 flex flex-col min-h-screen">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('pick')">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-rose-500 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                <i data-lucide="play" class="w-5 h-5 text-white fill-white"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <span class="font-heading font-extrabold text-xl tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-300 to-rose-400">StreamPicker</span>
+                    <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full">FlickPicker Mode</span>
+                </div>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Find what to watch across all your OTT apps</p>
+            </div>
+        </div>
+
+        <!-- Latency, Device Selector & User Profile -->
+        <div class="hidden lg:flex items-center space-x-3">
+            <button onclick="toggleAlertsModal()" class="relative p-2 rounded-xl bg-slate-900 border border-slate-700 text-slate-300 hover:text-white transition-all" title="Availability Alerts">
+                <i data-lucide="bell" class="w-4 h-4"></i>
+                <span id="alerts-count-badge" class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center">0</span>
+            </button>
+
+            <select id="device-selector" class="bg-slate-900 border border-slate-700 text-[11px] text-slate-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-indigo-500">
+                <option value="web" selected>🌐 Desktop Web Player</option>
+                <option value="ios">📱 iOS Universal Links</option>
+                <option value="android">🤖 Android App Intents</option>
+                <option value="tv">📺 Smart TV Mode</option>
+            </select>
+
+            <div id="user-auth-slot">
+                <button onclick="openAuthModal()" id="user-profile-btn" class="px-3.5 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center gap-1.5">
+                    <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                    <span id="user-display-name">Sign In</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <nav class="flex items-center space-x-1 bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+            <button onclick="switchTab('pick')" id="tab-btn-pick" class="nav-tab-btn active px-3 py-1.5 rounded-lg text-xs sm:text-sm font-bold flex items-center space-x-1.5 transition-all bg-indigo-600 text-white shadow-sm">
+                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i>
+                <span>Pick For Me</span>
+            </button>
+            <button onclick="switchTab('vibe')" id="tab-btn-vibe" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="wand-2" class="w-4 h-4 text-purple-400"></i>
+                <span>AI Vibe</span>
+            </button>
+            <button onclick="switchTab('party')" id="tab-btn-party" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="users" class="w-4 h-4 text-rose-400"></i>
+                <span>Watch Party</span>
+            </button>
+            <button onclick="switchTab('catalog')" id="tab-btn-catalog" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="search" class="w-4 h-4"></i>
+                <span>Explore</span>
+            </button>
+            <button onclick="switchTab('watchlist')" id="tab-btn-watchlist" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="bookmark" class="w-4 h-4"></i>
+                <span>Watchlist</span>
+                <span id="watchlist-count-badge" class="ml-1 px-1.5 py-0.2 bg-indigo-500/30 text-indigo-300 text-[10px] rounded-full">0</span>
+            </button>
+            <button onclick="switchTab('subscriptions')" id="tab-btn-subscriptions" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+                <span class="hidden md:inline">ROI</span>
+            </button>
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="activity" class="w-4 h-4 text-sky-400"></i>
+                <span class="hidden md:inline">Telemetry</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+
+        <!-- ==================== TAB 1: FLICKPICKER DISCOVERY ENGINE ==================== -->
+        <section id="tab-pick" class="tab-content block space-y-8">
+            
+            <!-- Hero Value Proposition Banner -->
+            <div class="text-center max-w-2xl mx-auto space-y-3 pt-2">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Zero Catalog Hopping • Sub-30s Decisions</span>
+                </div>
+                <h1 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
+                    Find What to Watch in <span class="bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-purple-300 to-rose-400">30 Seconds</span>
+                </h1>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed max-w-xl mx-auto">
+                    Stop switching between 6 streaming apps. Tell StreamPicker what you subscribe to, your mood, and your time — and get the perfect movie or show to stream right now.
+                </p>
+
+                <!-- Mode Switcher -->
+                <div class="pt-2 flex justify-center">
+                    <div class="bg-slate-900/90 p-1 rounded-xl border border-slate-800 flex items-center space-x-1 shadow-md">
+                        <button onclick="setPickerMode('solo')" id="mode-btn-solo" class="px-4 py-2 rounded-lg text-xs font-bold transition-all bg-indigo-600 text-white shadow-sm flex items-center gap-1.5">
+                            <i data-lucide="user" class="w-3.5 h-3.5"></i>
+                            <span>Solo Picker</span>
+                        </button>
+                        <button onclick="setPickerMode('couple')" id="mode-btn-couple" class="px-4 py-2 rounded-lg text-xs font-bold transition-all text-slate-400 hover:text-white flex items-center gap-1.5">
+                            <i data-lucide="heart" class="w-3.5 h-3.5 text-rose-400"></i>
+                            <span>Watch Together / Couple Mode</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SOLO MODE: 3-STEP WIZARD -->
+            <div id="solo-mode-container" class="space-y-6">
+                
+                <!-- STEP 1: Subscriptions -->
+                <div class="glass-panel p-5 sm:p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-extrabold">1</div>
+                            <h3 class="font-heading font-bold text-sm sm:text-base text-white">Select Your Active Subscriptions</h3>
+                        </div>
+                        <span class="text-[11px] text-slate-400">Click to toggle services you have</span>
+                    </div>
+
+                    <div id="step-providers-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- STEP 2: Mood / Vibe -->
+                <div class="glass-panel p-5 sm:p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-extrabold">2</div>
+                            <h3 class="font-heading font-bold text-sm sm:text-base text-white">Choose Today's Vibe</h3>
+                        </div>
+                        <span id="selected-mood-label" class="text-xs font-bold text-indigo-400">🧠 Mind-Bending</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="mood-chips">
+                        <div class="chip-btn active p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Mind-Bending">
+                            <span class="text-2xl">🧠</span>
+                            <span>Mind-Bending</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Complex, twists & sci-fi</span>
+                        </div>
+                        <div class="chip-btn p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Adrenaline Rush">
+                            <span class="text-2xl">⚡</span>
+                            <span>Adrenaline</span>
+                            <span class="text-[10px] text-slate-400 font-normal">High-octane action</span>
+                        </div>
+                        <div class="chip-btn p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Feel-Good & Uplifting">
+                            <span class="text-2xl">🍿</span>
+                            <span>Feel-Good</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Heartwarming & fun</span>
+                        </div>
+                        <div class="chip-btn p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Late-Night Mystery">
+                            <span class="text-2xl">🌙</span>
+                            <span>Mystery</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Whodunits & thrillers</span>
+                        </div>
+                        <div class="chip-btn p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Dark & Gritty">
+                            <span class="text-2xl">🍷</span>
+                            <span>Dark & Gritty</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Crime, noir & tension</span>
+                        </div>
+                        <div class="chip-btn p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Date Night">
+                            <span class="text-2xl">💖</span>
+                            <span>Date Night</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Romance & drama</span>
+                        </div>
+                        <div class="chip-btn p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Hilarious Comedy">
+                            <span class="text-2xl">😂</span>
+                            <span>Comedy</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Laughs & lighthearted</span>
+                        </div>
+                        <div class="chip-btn p-3.5 rounded-xl bg-slate-900/80 text-center font-semibold text-xs flex flex-col items-center gap-1.5" data-mood="Quick Watch">
+                            <span class="text-2xl">⏱️</span>
+                            <span>Quick Watch</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Under 90 minutes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 3: Time & Quality Filters -->
+                <div class="glass-panel p-5 sm:p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-extrabold">3</div>
+                            <h3 class="font-heading font-bold text-sm sm:text-base text-white">Time Available & Quality</h3>
+                        </div>
+                        <span id="runtime-display" class="px-2.5 py-0.5 bg-indigo-500/20 text-indigo-300 font-bold text-xs rounded-full border border-indigo-500/30">&le; 120 minutes</span>
+                    </div>
+
+                    <!-- Quick Preset Buttons -->
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setRuntimePreset(90)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700">⏱️ Under 90 mins (Short)</button>
+                        <button onclick="setRuntimePreset(120)" class="px-3 py-1.5 rounded-lg bg-indigo-600/30 text-indigo-200 border border-indigo-500/40 text-xs font-bold">🎬 Standard (≤ 120 mins)</button>
+                        <button onclick="setRuntimePreset(180)" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 border border-slate-700">🍿 Epic (≤ 180 mins)</button>
+                    </div>
+
+                    <input type="range" id="runtime-slider" min="40" max="200" step="10" value="120" class="w-full">
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">Minimum IMDb Score</label>
+                            <select id="pick-min-rating" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500">
+                                <option value="7.0" selected>⭐ 7.0+ (Solid & Entertaining)</option>
+                                <option value="7.5">⭐ 7.5+ (Very High Quality)</option>
+                                <option value="8.0">⭐ 8.0+ (Critically Acclaimed)</option>
+                                <option value="8.5">⭐ 8.5+ (All-Time Masterpiece)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold uppercase text-slate-400 mb-1.5">Format</label>
+                            <select id="pick-content-type" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-500">
+                                <option value="" selected>🎬 Movies & TV Series</option>
+                                <option value="movie">🎥 Movies Only</option>
+                                <option value="series">📺 TV Series Only</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SOLVE ACTION CTA -->
+                <div class="pt-2">
+                    <button onclick="triggerPickForMe()" id="pick-btn" class="w-full py-4 sm:py-5 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-rose-600 hover:from-indigo-500 hover:via-purple-500 hover:to-rose-500 text-white font-heading font-extrabold text-lg sm:text-xl shadow-2xl shadow-indigo-600/40 flex items-center justify-center space-x-3 transition-all duration-200 transform hover:-translate-y-0.5 cursor-pointer">
+                        <i data-lucide="sparkles" class="w-6 h-6 text-amber-300 animate-bounce"></i>
+                        <span>Pick My Next Stream (< 30s)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- COUPLE MODE -->
+            <div id="couple-mode-container" class="hidden space-y-6">
+                <div class="glass-panel p-6 sm:p-8 rounded-2xl max-w-3xl mx-auto shadow-2xl border border-rose-500/30">
+                    <div class="text-center mb-6">
+                        <h2 class="font-heading text-2xl font-bold text-white flex items-center justify-center gap-2">
+                            <i data-lucide="users" class="w-6 h-6 text-rose-400"></i>
+                            <span>Watch Together Compromise Solver</span>
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Combine two viewers' subscriptions and tastes to eliminate arguing!</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold text-xs">V1</div>
+                                <input type="text" id="v1-name" value="You" class="bg-transparent text-sm font-bold text-white border-b border-slate-700 focus:outline-none focus:border-indigo-400 w-24">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Preferred Vibe</label>
+                                <select id="v1-mood" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">
+                                    <option value="Mind-Bending">🧠 Mind-Bending</option>
+                                    <option value="Adrenaline Rush">⚡ Adrenaline & Action</option>
+                                    <option value="Feel-Good & Uplifting">🍿 Feel-Good</option>
+                                    <option value="Dark & Gritty">🍷 Dark & Gritty</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-700/80 space-y-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-7 h-7 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold text-xs">V2</div>
+                                <input type="text" id="v2-name" value="Partner" class="bg-transparent text-sm font-bold text-white border-b border-slate-700 focus:outline-none focus:border-rose-400 w-24">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-400 uppercase mb-1">Preferred Vibe</label>
+                                <select id="v2-mood" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 text-xs text-slate-200">
+                                    <option value="Feel-Good & Uplifting" selected>🍿 Feel-Good</option>
+                                    <option value="Date Night">💖 Date Night / Romance</option>
+                                    <option value="Hilarious Comedy">😂 Comedy</option>
+                                    <option value="Late-Night Mystery">🌙 Mystery</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-6">
+                        <button onclick="triggerGroupPick()" id="group-pick-btn" class="w-full py-4 px-6 rounded-xl bg-gradient-to-r from-rose-600 via-purple-600 to-indigo-600 hover:from-rose-500 hover:via-purple-500 hover:to-indigo-500 text-white font-heading font-extrabold text-lg shadow-xl shadow-rose-600/30 flex items-center justify-center space-x-2 transition-all">
+                            <i data-lucide="scale" class="w-5 h-5"></i>
+                            <span>Find Our Compromise Pick</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- THE REVEAL CARD AREA -->
+            <div id="pick-result-container" class="hidden max-w-4xl mx-auto pt-4 transition-all duration-300"></div>
+        </section>
+
+        <!-- ==================== TAB 2: AI VIBE SEARCH ==================== -->
+        <section id="tab-vibe" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="font-heading text-3xl font-extrabold text-white">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-indigo-300 to-rose-400">AI Semantic Vibe Search</span>
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">Describe what you want using conversational English and vector matching.</p>
+            </div>
+
+            <div class="glass-panel p-6 rounded-2xl shadow-xl space-y-4">
+                <div class="flex gap-2">
+                    <input type="text" id="vibe-query-input" placeholder="e.g. Mind-bending sci-fi under 90 minutes with high ratings" 
+                        class="flex-1 bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                    <button onclick="triggerVibeSearch()" id="vibe-search-btn" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>Search Vibe</span>
+                    </button>
+                </div>
+
+                <div>
+                    <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">Quick Inspiration:</span>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="setVibePrompt('Dark mind-bending psychological thriller under 100 mins')" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg text-xs border border-slate-700">🧠 Dark mind-bending thriller &lt;100m</button>
+                        <button onclick="setVibePrompt('Uplifting feel-good comedy for a Friday night')" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg text-xs border border-slate-700">🍿 Feel-good Friday night comedy</button>
+                        <button onclick="setVibePrompt('Directed by Christopher Nolan action thriller')" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg text-xs border border-slate-700">⚡ Christopher Nolan thrillers</button>
+                        <button onclick="setVibePrompt('Fast paced crime drama like Breaking Bad')" class="px-3 py-1 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-lg text-xs border border-slate-700">🍷 High-stakes crime drama</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="vibe-results-container" class="space-y-4"></div>
+        </section>
+
+        <!-- ==================== TAB 3: WATCH PARTY LIVE ROOMS ==================== -->
+        <section id="tab-party" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+            <div class="text-center max-w-2xl mx-auto space-y-2">
+                <h2 class="font-heading text-3xl font-extrabold text-white">
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-rose-400 via-purple-300 to-indigo-400">Pick Together Watch Party</span>
+                </h2>
+                <p class="text-xs sm:text-sm text-slate-400">Create a room, share code with friends on their phones, and swipe/vote to find group consensus!</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="glass-panel p-6 rounded-2xl border border-indigo-500/40 space-y-4">
+                    <h3 class="font-heading font-bold text-base text-white flex items-center gap-2">
+                        <i data-lucide="plus-circle" class="w-5 h-5 text-indigo-400"></i>
+                        <span>Create Watch Room</span>
+                    </h3>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Host Name</label>
+                        <input type="text" id="create-room-host-name" value="Host" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <button onclick="createNewWatchRoom()" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30">
+                        <i data-lucide="door-open" class="w-4 h-4"></i>
+                        <span>Create Room & Generate Code</span>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-6 rounded-2xl border border-purple-500/40 space-y-4">
+                    <h3 class="font-heading font-bold text-base text-white flex items-center gap-2">
+                        <i data-lucide="log-in" class="w-5 h-5 text-purple-400"></i>
+                        <span>Join Existing Room</span>
+                    </h3>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Room Code</label>
+                        <input type="text" id="join-room-code-input" placeholder="e.g. AB12CD" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white uppercase focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Your Name</label>
+                        <input type="text" id="join-room-user-name" value="Guest" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-500">
+                    </div>
+                    <button onclick="joinExistingWatchRoom()" class="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-lg shadow-purple-600/30">
+                        <i data-lucide="arrow-right-circle" class="w-4 h-4"></i>
+                        <span>Join Room</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="active-room-container" class="hidden glass-panel p-6 rounded-2xl border border-emerald-500/40 space-y-6"></div>
+        </section>
+
+        <!-- ==================== TAB 4: EXPLORE CATALOG ==================== -->
+        <section id="tab-catalog" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-5 rounded-2xl space-y-4">
+                <div class="flex flex-col md:flex-row gap-3">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute left-3.5 top-3.5"></i>
+                        <input type="text" id="catalog-search-input" placeholder="Search by movie, actor, director, genre, or vibe..." 
+                            class="w-full bg-slate-900/90 border border-slate-700/80 rounded-xl pl-11 pr-4 py-2.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500">
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <select id="filter-genre" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+                            <option value="">All Genres</option>
+                            <option value="Sci-Fi">Sci-Fi</option>
+                            <option value="Drama">Drama</option>
+                            <option value="Action">Action</option>
+                            <option value="Comedy">Comedy</option>
+                            <option value="Thriller">Thriller</option>
+                            <option value="Mystery">Mystery</option>
+                        </select>
+                        <select id="filter-type" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+                            <option value="">Movies & Series</option>
+                            <option value="movie">Movies</option>
+                            <option value="series">Series</option>
+                        </select>
+                        <select id="filter-sort" class="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-300 focus:outline-none focus:border-indigo-500">
+                            <option value="rating">Top Rated</option>
+                            <option value="year">Newest First</option>
+                            <option value="runtime">Shortest Runtime</option>
+                            <option value="title">Alphabetical</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="catalog-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+        </section>
+
+        <!-- ==================== TAB 5: UNIFIED WATCHLIST & EXPORT ==================== -->
+        <section id="tab-watchlist" class="tab-content hidden space-y-6">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-heading text-2xl font-bold text-white">Unified Cross-OTT Watchlist</h2>
+                    <p class="text-xs sm:text-sm text-slate-400">All your saved titles across every platform in one central place.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span id="watchlist-total-pill" class="px-3 py-1 bg-indigo-500/20 text-indigo-300 text-xs font-semibold rounded-full border border-indigo-500/30">0 Saved</span>
+                    <button onclick="exportWatchlist('csv')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Export CSV</span>
+                    </button>
+                    <button onclick="exportWatchlist('json')" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 flex items-center gap-1">
+                        <i data-lucide="file-json" class="w-3.5 h-3.5"></i>
+                        <span>JSON</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="watchlist-empty-state" class="hidden text-center py-16 glass-panel rounded-2xl p-8 max-w-md mx-auto">
+                <div class="w-14 h-14 bg-indigo-500/10 text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="bookmark-plus" class="w-7 h-7"></i>
+                </div>
+                <h3 class="font-heading font-bold text-lg text-white mb-1">Your Watchlist is Empty</h3>
+                <p class="text-xs text-slate-400 mb-5">Save titles using "Pick For Me" or browse the catalog to bookmark movies and shows.</p>
+                <button onclick="switchTab('pick')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-semibold">Start Discovering</button>
+            </div>
+
+            <div id="watchlist-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+        </section>
+
+        <!-- ==================== TAB 6: SUBSCRIPTION ROI & SPEND ==================== -->
+        <section id="tab-subscriptions" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+            <div>
+                <h2 class="font-heading text-2xl font-bold text-white">Subscription Portfolio & Cost Optimizer</h2>
+                <p class="text-xs sm:text-sm text-slate-400">Understand your monthly streaming spend, catalog coverage, and avoid paying for redundant movie rentals.</p>
+            </div>
+
+            <div id="roi-metrics-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+
+            <div class="space-y-4 pt-4">
+                <h3 class="font-heading font-bold text-lg text-white">Active Streaming Platforms</h3>
+                <div id="subscriptions-list-container" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 7: PLATFORM ANALYTICS & TELEMETRY ==================== -->
+        <section id="tab-analytics" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-heading text-2xl font-bold text-white">System Telemetry & Live Sync</h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Real-time metrics tracking discovery latency, TMDB sync, and cache hit efficiency.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="triggerLiveTMDBSync()" id="tmdb-sync-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="cloud-download" class="w-4 h-4"></i>
+                        <span>Sync Live TMDB</span>
+                    </button>
+                    <button onclick="triggerCatalogSync()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center gap-1.5">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Simulate Sync</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="analytics-metrics-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass-panel p-6 rounded-2xl border border-slate-700 space-y-3">
+                    <h3 class="font-heading font-bold text-base text-white">Streaming Provider Launches (CTR)</h3>
+                    <div id="provider-ctr-container" class="space-y-2"></div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border border-slate-700 space-y-3">
+                    <h3 class="font-heading font-bold text-base text-white">Upstream API Status</h3>
+                    <div id="api-status-container" class="space-y-2"></div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Title Details Modal -->
+    <div id="title-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div id="modal-card" class="bg-dark-800 border border-slate-700/80 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-full bg-slate-900/80 border border-slate-700">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+    <!-- YouTube Trailer Modal -->
+    <div id="trailer-modal" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-lg hidden items-center justify-center p-4">
+        <div class="bg-dark-800 border border-slate-700 rounded-2xl max-w-3xl w-full p-4 relative shadow-2xl space-y-3">
+            <div class="flex items-center justify-between pb-2 border-b border-slate-700">
+                <h3 id="trailer-modal-title" class="font-heading font-bold text-lg text-white">Movie Trailer</h3>
+                <button onclick="closeTrailerModal()" class="p-1.5 rounded-lg bg-slate-900 text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div id="trailer-iframe-container" class="w-full aspect-video rounded-xl overflow-hidden bg-black">
+                <!-- Iframe injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal (Login / Register / Demo) -->
+    <div id="auth-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-dark-800 border border-slate-700/80 rounded-2xl max-w-md w-full p-6 relative shadow-2xl space-y-5">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            
+            <div class="text-center">
+                <h3 id="auth-modal-title" class="font-heading font-extrabold text-2xl text-white">Sign In to StreamPicker</h3>
+                <p class="text-xs text-slate-400 mt-1">Multi-device sync for your subscriptions and watchlist.</p>
+            </div>
+
+            <!-- Form -->
+            <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+                <div id="auth-fullname-field" class="hidden">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Full Name</label>
+                    <input type="text" id="auth-name-input" placeholder="e.g. Alex Rivera" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Email Address</label>
+                    <input type="email" id="auth-email-input" required placeholder="alex@example.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+                    <input type="password" id="auth-password-input" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+                </div>
+                <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-indigo-600/30">
+                    Sign In
+                </button>
+            </form>
+
+            <div class="text-center">
+                <button onclick="toggleAuthMode()" id="auth-toggle-btn" class="text-xs text-indigo-400 hover:text-indigo-300 font-semibold">
+                    Need an account? Create one
+                </button>
+            </div>
+
+            <!-- 1-Click Demo Profiles -->
+            <div class="pt-3 border-t border-slate-700 space-y-2">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center">1-Click Demo Profiles:</span>
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="loginDemoUser('alice@streampicker.com', 'Alice Moviegoer')" class="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-indigo-500 text-xs font-semibold text-slate-300 flex items-center justify-center gap-1.5">
+                        <span>👩 Alice (Netflix+Prime)</span>
+                    </button>
+                    <button onclick="loginDemoUser('bob@streampicker.com', 'Bob Cinephile')" class="p-2 rounded-xl bg-slate-900 border border-slate-700 hover:border-rose-500 text-xs font-semibold text-slate-300 flex items-center justify-center gap-1.5">
+                        <span>👨 Bob (Hotstar+Jio)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Notification Modal -->
+    <div id="alerts-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-dark-800 border border-slate-700/80 rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto p-6 relative shadow-2xl space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-700">
+                <h3 class="font-heading font-bold text-lg text-white flex items-center gap-2">
+                    <i data-lucide="bell" class="w-5 h-5 text-rose-400"></i>
+                    <span>Availability & Price Alerts</span>
+                </h3>
+                <button onclick="toggleAlertsModal()" class="text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <div id="alerts-list-container" class="space-y-3"></div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-2xl border border-indigo-400/40 hidden items-center space-x-2 transition-all">
+        <i data-lucide="check-circle" class="w-4 h-4 text-emerald-300"></i>
+        <span id="toast-message">Notification</span>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
+        <p>StreamPicker &copy; 2026 — Zero-Friction OTT Discovery, Multi-User Auth & Live Ingestion</p>
+    </footer>
+
+    <!-- App Logic -->
+    <script src="/static/app.js"></script>
+</body>
+</html>

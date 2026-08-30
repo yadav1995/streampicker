@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # StreamPicker FastAPI Web Application
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: streampicker_web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - DATABASE_URL=postgresql://streampicker:streampicker_pass@db:5432/streampicker_db
+      - REDIS_URL=redis://redis:6379/0
+      - DEFAULT_USER_ID=default_user
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - streampicker_net
+
+  # PostgreSQL 16 Database
+  db:
+    image: postgres:16-alpine
+    container_name: streampicker_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: streampicker
+      POSTGRES_PASSWORD: streampicker_pass
+      POSTGRES_DB: streampicker_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U streampicker -d streampicker_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - streampicker_net
+
+  # Redis 7 In-Memory Cache & Rate Limiting
+  redis:
+    image: redis:7-alpine
+    container_name: streampicker_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - streampicker_net
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  streampicker_net:
+    driver: bridge
