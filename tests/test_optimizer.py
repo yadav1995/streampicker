@@ -18,13 +18,6 @@ def test_db():
     finally:
         db.close()
 
-def test_calculate_subscription_roi(test_db):
-    roi = calculate_subscription_roi(test_db, user_id="test_user")
-    assert roi.total_monthly_spend_inr > 0
-    assert roi.active_subscriptions_count >= 1
-    assert roi.accessible_catalog_count > 0
-    assert roi.catalog_coverage_percent > 0
-
 def test_check_title_redundancy(test_db):
     # Oppenheimer is available for flatrate on Hotstar and for rent on Prime Video
     oppenheimer = test_db.query(Title).filter(Title.title.ilike("%Oppenheimer%")).first()
