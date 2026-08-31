@@ -410,12 +410,42 @@ function setPickerMode(mode) {
 
 // ==================== PROVIDERS & SUBSCRIPTIONS ====================
 
+function autoDetectUserRegionAndDefaultSubs() {
+    try {
+        const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+        const isIndia = timeZone.includes('Calcutta') || timeZone.includes('Kolkata') || timeZone.includes('India') || navigator.language.includes('IN');
+        
+        const regionText = document.getElementById('geo-region-text');
+        if (regionText) {
+            regionText.textContent = isIndia ? 'Auto-configured for India 🇮🇳' : 'Auto-configured for your region 🌐';
+        }
+
+        const geoConfigured = localStorage.getItem('streampicker_geo_configured');
+        if (!geoConfigured && userSubscriptions.size === 0) {
+            if (isIndia) {
+                userSubscriptions = new Set(['netflix', 'prime_video', 'hotstar', 'jiocinema']);
+            } else {
+                userSubscriptions = new Set(['netflix', 'prime_video', 'apple_tv']);
+            }
+            localStorage.setItem('streampicker_geo_configured', 'true');
+            authFetch('/api/v1/subscriptions', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ provider_ids: Array.from(userSubscriptions) })
+            });
+        }
+    } catch (e) {
+        console.error('Geo detect error:', e);
+    }
+}
+
 async function loadProviders() {
     try {
         const res = await authFetch('/api/v1/providers');
         if (!res.ok) throw new Error('Failed to fetch providers');
         providersList = await res.json();
         userSubscriptions = new Set(providersList.filter(p => p.is_subscribed).map(p => p.id));
+        autoDetectUserRegionAndDefaultSubs();
         renderStepProvidersGrid();
     } catch (err) {
         console.error('Error loading providers:', err);
@@ -530,7 +560,139 @@ async function loadROIDashboard() {
     }
 }
 
-// ==================== "PICK FOR ME" INSTANT DISCOVERY ====================
+// ==================== "PICK FOR ME" & INSTANT PRESETS ====================
+
+async function triggerPanicPick() {
+    showToast('🎲 "Just Pick Something" activated! Finding champion pick...');
+    const panicBtn = document.getElementById('panic-pick-btn');
+    if (panicBtn) {
+        panicBtn.disabled = true;
+        panicBtn.classList.add('opacity-75', 'animate-pulse');
+    }
+
+    try {
+        const reqBody = {
+            providers: Array.from(userSubscriptions),
+            mood: null,
+            max_runtime: 180,
+            min_imdb_rating: 7.8,
+            content_type: 'movie',
+            exclude_title_ids: excludeHistory
+        };
+
+        const startTime = performance.now();
+        let res = await authFetch('/api/v1/discovery/pick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+        });
+
+        if (!res.ok) {
+            reqBody.min_imdb_rating = 7.0;
+            res = await authFetch('/api/v1/discovery/pick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqBody)
+            });
+        }
+
+        const elapsedMs = Math.round(performance.now() - startTime);
+
+        if (res.ok) {
+            const data = await res.json();
+            lastPickData = data;
+            excludeHistory.push(data.title.id);
+            renderPickResult(data, elapsedMs);
+        } else {
+            triggerPickForMe();
+        }
+
+    } catch (err) {
+        console.error('Error during panic pick:', err);
+    } finally {
+        if (panicBtn) {
+            panicBtn.disabled = false;
+            panicBtn.classList.remove('opacity-75', 'animate-pulse');
+        }
+    }
+}
+
+async function triggerPresetPick(presetName) {
+    let targetMood = 'Mind-Bending';
+    let maxRuntime = 120;
+    let minRating = 7.5;
+    let contentType = 'movie';
+
+    if (presetName === 'pizza') {
+        targetMood = 'Adrenaline Rush';
+        maxRuntime = 130;
+        minRating = 7.5;
+        showToast('🍕 Friday Pizza Movie mode selected!');
+    } else if (presetName === 'bedtime') {
+        targetMood = 'Feel-Good & Uplifting';
+        maxRuntime = 45;
+        minRating = 7.0;
+        contentType = null;
+        showToast('💤 Bedtime Quick Watch mode selected!');
+    } else if (presetName === 'epic') {
+        targetMood = 'Mind-Bending';
+        maxRuntime = 190;
+        minRating = 8.0;
+        showToast('🍿 Weekend Epic mode selected!');
+    }
+
+    setRuntimePreset(maxRuntime);
+    const ratingEl = document.getElementById('pick-min-rating');
+    if (ratingEl) ratingEl.value = String(minRating);
+    const typeEl = document.getElementById('pick-content-type');
+    if (typeEl) typeEl.value = contentType || '';
+
+    const moodChips = document.querySelectorAll('#mood-chips .chip-btn');
+    moodChips.forEach(chip => {
+        if (chip.dataset.mood === targetMood) {
+            chip.click();
+        }
+    });
+
+    try {
+        const reqBody = {
+            providers: Array.from(userSubscriptions),
+            mood: targetMood,
+            max_runtime: maxRuntime,
+            min_imdb_rating: minRating,
+            content_type: contentType,
+            exclude_title_ids: excludeHistory
+        };
+
+        const startTime = performance.now();
+        let res = await authFetch('/api/v1/discovery/pick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(reqBody)
+        });
+
+        if (!res.ok) {
+            reqBody.min_imdb_rating = 6.5;
+            res = await authFetch('/api/v1/discovery/pick', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(reqBody)
+            });
+        }
+
+        const elapsedMs = Math.round(performance.now() - startTime);
+        if (res.ok) {
+            const data = await res.json();
+            lastPickData = data;
+            excludeHistory.push(data.title.id);
+            renderPickResult(data, elapsedMs);
+        } else {
+            triggerPickForMe();
+        }
+    } catch (e) {
+        triggerPickForMe();
+    }
+}
 
 async function triggerPickForMe(isReroll = false) {
     const pickBtn = document.getElementById('pick-btn');

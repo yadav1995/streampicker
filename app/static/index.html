@@ -140,17 +140,79 @@
                 </div>
             </div>
 
+            <!-- "JUST PICK SOMETHING" (The Panic Button for Exhausted Users) -->
+            <div class="max-w-3xl mx-auto">
+                <button onclick="triggerPanicPick()" id="panic-pick-btn" class="w-full p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500 via-rose-500 to-purple-600 hover:from-amber-400 hover:via-rose-400 hover:to-purple-500 text-white shadow-2xl shadow-rose-500/30 border border-white/20 transition-all duration-300 transform hover:-translate-y-1 group flex items-center justify-between cursor-pointer">
+                    <div class="flex items-center space-x-3.5 text-left">
+                        <div class="w-12 h-12 rounded-xl bg-black/30 backdrop-blur-md flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                            🎲
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-heading font-extrabold text-base sm:text-lg text-white">"Just Pick Something"</span>
+                                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-white/20 text-white border border-white/30">Instant Decision</span>
+                            </div>
+                            <p class="text-xs text-white/90">Too tired to browse? 1-click champion pick (IMDb 7.8+) on your active subscriptions</p>
+                        </div>
+                    </div>
+                    <div class="hidden sm:flex items-center space-x-1.5 bg-black/30 px-3 py-1.5 rounded-xl border border-white/10 text-xs font-bold">
+                        <i data-lucide="zap" class="w-4 h-4 text-amber-300 fill-amber-300 animate-pulse"></i>
+                        <span>Instant Solve</span>
+                    </div>
+                </button>
+            </div>
+
+            <!-- ONE-TAP QUICK PRESETS -->
+            <div class="max-w-3xl mx-auto space-y-2.5">
+                <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
+                    <span class="flex items-center gap-1.5">
+                        <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+                        <span>One-Tap Quick Presets</span>
+                    </span>
+                    <span class="text-[11px] text-indigo-400 font-normal">Auto-configures & solves in 1 tap</span>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button onclick="triggerPresetPick('pizza')" class="p-3.5 rounded-xl glass-panel hover:border-amber-500/60 transition-all text-left flex items-center space-x-3 group cursor-pointer">
+                        <span class="text-3xl group-hover:scale-110 transition-transform">🍕</span>
+                        <div>
+                            <h4 class="font-heading font-bold text-xs sm:text-sm text-white group-hover:text-amber-300">Friday Pizza Movie</h4>
+                            <p class="text-[11px] text-slate-400">Action / Comedy • IMDb 7.5+</p>
+                        </div>
+                    </button>
+
+                    <button onclick="triggerPresetPick('bedtime')" class="p-3.5 rounded-xl glass-panel hover:border-indigo-500/60 transition-all text-left flex items-center space-x-3 group cursor-pointer">
+                        <span class="text-3xl group-hover:scale-110 transition-transform">💤</span>
+                        <div>
+                            <h4 class="font-heading font-bold text-xs sm:text-sm text-white group-hover:text-indigo-300">Bedtime Quick Watch</h4>
+                            <p class="text-[11px] text-slate-400">Chill vibe • ≤ 45 min episode</p>
+                        </div>
+                    </button>
+
+                    <button onclick="triggerPresetPick('epic')" class="p-3.5 rounded-xl glass-panel hover:border-purple-500/60 transition-all text-left flex items-center space-x-3 group cursor-pointer">
+                        <span class="text-3xl group-hover:scale-110 transition-transform">🍿</span>
+                        <div>
+                            <h4 class="font-heading font-bold text-xs sm:text-sm text-white group-hover:text-purple-300">Weekend Epic</h4>
+                            <p class="text-[11px] text-slate-400">Sci-Fi / Epic • 2h+ • IMDb 8.0+</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
             <!-- SOLO MODE: 3-STEP WIZARD -->
             <div id="solo-mode-container" class="space-y-6">
                 
                 <!-- STEP 1: Subscriptions -->
                 <div class="glass-panel p-5 sm:p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-3">
-                    <div class="flex items-center justify-between">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="flex items-center gap-2">
                             <div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-extrabold">1</div>
                             <h3 class="font-heading font-bold text-sm sm:text-base text-white">Select Your Active Subscriptions</h3>
                         </div>
-                        <span class="text-[11px] text-slate-400">Click to toggle services you have</span>
+                        <div id="geo-region-indicator" class="flex items-center gap-1.5 text-[11px] text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span id="geo-region-text">Auto-configured for your region</span>
+                            <span class="text-slate-400 font-semibold">• Change in 1 tap</span>
+                        </div>
                     </div>
 
                     <div id="step-providers-grid" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5 pt-1">
