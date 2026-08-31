@@ -374,11 +374,6 @@ function switchTab(tabId) {
         loadWatchlist();
     } else if (tabId === 'catalog') {
         loadCatalog();
-    } else if (tabId === 'subscriptions') {
-        loadROIDashboard();
-    } else if (tabId === 'analytics') {
-        loadAnalytics();
-        loadAPIStatus();
     }
 }
 
