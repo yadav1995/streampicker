@@ -25,7 +25,7 @@ def test_watch_party_room_workflow(test_db):
     assert create_res["host_name"] == "Alice"
 
     # 2. Join room
-    join_res = room_manager.join_room(code, "Bob", ["hotstar", "jiocinema"])
+    join_res = room_manager.join_room(code, "Bob", ["hotstar", "sonyliv"])
     assert join_res is not None
     assert "Bob" in join_res["participants"]
 

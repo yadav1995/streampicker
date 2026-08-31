@@ -9,7 +9,6 @@ TMDB_PROVIDER_MAP = {
     8: ("netflix", "Netflix", "#E50914"),
     119: ("prime_video", "Amazon Prime Video", "#00A8E1"),
     122: ("hotstar", "Disney+ Hotstar", "#00143E"),
-    220: ("jiocinema", "JioCinema", "#E5007D"),
     350: ("apple_tv", "Apple TV+", "#000000"),
     237: ("sonyliv", "SonyLIV", "#2D2D2D"),
     232: ("zee5", "ZEE5", "#8E24AA")

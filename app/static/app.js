@@ -60,8 +60,6 @@ function getWatchLink(streamOption, titleName) {
         return `https://www.netflix.com/search?q=${query}`;
     } else if (providerId.includes('hotstar') || providerId.includes('disney')) {
         return `https://www.hotstar.com/in/explore?search_query=${query}`;
-    } else if (providerId.includes('jio')) {
-        return `https://www.jiocinema.com/search/${query}`;
     } else if (providerId.includes('apple')) {
         return `https://tv.apple.com/search?term=${query}`;
     } else if (providerId.includes('sonyliv')) {
@@ -423,7 +421,7 @@ function autoDetectUserRegionAndDefaultSubs() {
         const geoConfigured = localStorage.getItem('streampicker_geo_configured');
         if (!geoConfigured && userSubscriptions.size === 0) {
             if (isIndia) {
-                userSubscriptions = new Set(['netflix', 'prime_video', 'hotstar', 'jiocinema']);
+                userSubscriptions = new Set(['netflix', 'prime_video', 'hotstar']);
             } else {
                 userSubscriptions = new Set(['netflix', 'prime_video', 'apple_tv']);
             }

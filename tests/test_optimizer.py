@@ -26,11 +26,11 @@ def test_calculate_subscription_roi(test_db):
     assert roi.catalog_coverage_percent > 0
 
 def test_check_title_redundancy(test_db):
-    # Oppenheimer is available for flatrate on JioCinema and for rent on Prime Video
+    # Oppenheimer is available for flatrate on Hotstar and for rent on Prime Video
     oppenheimer = test_db.query(Title).filter(Title.title.ilike("%Oppenheimer%")).first()
     assert oppenheimer is not None
 
     redundancy = check_title_redundancy(test_db, oppenheimer.id, user_id="test_user")
-    # test_user has jiocinema in default subscriptions
+    # test_user has hotstar in default subscriptions
     assert redundancy.is_redundant is True
     assert "Save money" in redundancy.redundancy_message

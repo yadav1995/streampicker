@@ -12,7 +12,6 @@ class AnalyticsTracker:
             "netflix": 45,
             "prime_video": 38,
             "hotstar": 29,
-            "jiocinema": 21,
             "apple_tv": 12,
             "sonyliv": 14
         }

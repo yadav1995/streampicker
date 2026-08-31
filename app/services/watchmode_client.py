@@ -10,7 +10,6 @@ WATCHMODE_SOURCE_MAP = {
     "amazon_prime": "prime_video",
     "disney_plus": "hotstar",
     "apple_tv_plus": "apple_tv",
-    "jiocinema": "jiocinema",
     "sonyliv": "sonyliv",
     "zee5": "zee5"
 }

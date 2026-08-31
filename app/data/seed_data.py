@@ -29,22 +29,13 @@ PROVIDERS_DATA = [
         "display_priority": 3,
     },
     {
-        "id": "jiocinema",
-        "name": "JioCinema",
-        "icon_url": "https://www.jiocinema.com/images/jc_logo.svg",
-        "brand_color": "#E1127A",
-        "badge_bg": "rgba(225, 18, 122, 0.15)",
-        "monthly_price_inr": 89.0,
-        "display_priority": 4,
-    },
-    {
         "id": "apple_tv",
         "name": "Apple TV+",
         "icon_url": "https://www.apple.com/v/apple-tv-plus/ah/images/meta/apple-tv__e60wf2v1k4ia_og.png",
         "brand_color": "#A2AAAD",
         "badge_bg": "rgba(162, 170, 173, 0.15)",
         "monthly_price_inr": 99.0,
-        "display_priority": 5,
+        "display_priority": 4,
     },
     {
         "id": "sonyliv",
@@ -87,12 +78,12 @@ TITLES_DATA = [
         "trailer_url": "https://www.youtube.com/watch?v=uYPbbksJxIg",
         "providers": [
             {
-                "provider_id": "jiocinema",
+                "provider_id": "hotstar",
                 "access_type": "flatrate",
                 "price": 0.0,
                 "currency": "INR",
-                "web_url": "https://www.jiocinema.com/movies/oppenheimer/3814890",
-                "deep_link": "jiocinema://content/movie/3814890"
+                "web_url": "https://www.hotstar.com/in/movies/oppenheimer/1260161499",
+                "deep_link": "hotstar://movies/1260161499"
             },
             {
                 "provider_id": "prime_video",
@@ -167,14 +158,6 @@ TITLES_DATA = [
                 "currency": "INR",
                 "web_url": "https://www.primevideo.com/detail/Interstellar/0K8C7U91",
                 "deep_link": "primevideo://detail?asin=B00TX7O123"
-            },
-            {
-                "provider_id": "jiocinema",
-                "access_type": "flatrate",
-                "price": 0.0,
-                "currency": "INR",
-                "web_url": "https://www.jiocinema.com/movies/interstellar/3782901",
-                "deep_link": "jiocinema://content/movie/3782901"
             }
         ]
     },
@@ -388,12 +371,12 @@ TITLES_DATA = [
         "trailer_url": "https://www.youtube.com/watch?v=n9xhJrPXop4",
         "providers": [
             {
-                "provider_id": "jiocinema",
+                "provider_id": "hotstar",
                 "access_type": "flatrate",
                 "price": 0.0,
                 "currency": "INR",
-                "web_url": "https://www.jiocinema.com/movies/dune/3748291",
-                "deep_link": "jiocinema://content/movie/3748291"
+                "web_url": "https://www.hotstar.com/in/movies/dune/1260161477",
+                "deep_link": "hotstar://movies/1260161477"
             },
             {
                 "provider_id": "prime_video",
@@ -425,12 +408,12 @@ TITLES_DATA = [
         "trailer_url": "https://www.youtube.com/watch?v=Way9Dexny3w",
         "providers": [
             {
-                "provider_id": "jiocinema",
+                "provider_id": "hotstar",
                 "access_type": "flatrate",
                 "price": 0.0,
                 "currency": "INR",
-                "web_url": "https://www.jiocinema.com/movies/dune-part-two/3920194",
-                "deep_link": "jiocinema://content/movie/3920194"
+                "web_url": "https://www.hotstar.com/in/movies/dune-part-two/1260161488",
+                "deep_link": "hotstar://movies/1260161488"
             },
             {
                 "provider_id": "apple_tv",
@@ -660,12 +643,12 @@ TITLES_DATA = [
         "trailer_url": "https://www.youtube.com/watch?v=vKQi3bBA1y8",
         "providers": [
             {
-                "provider_id": "jiocinema",
+                "provider_id": "netflix",
                 "access_type": "flatrate",
                 "price": 0.0,
                 "currency": "INR",
-                "web_url": "https://www.jiocinema.com/movies/the-matrix/3782902",
-                "deep_link": "jiocinema://content/movie/3782902"
+                "web_url": "https://www.netflix.com/title/20557937",
+                "deep_link": "nflx://title/20557937"
             },
             {
                 "provider_id": "prime_video",
@@ -884,5 +867,5 @@ TITLES_DATA = [
 
 PROVIDERS = PROVIDERS_DATA
 TITLES = TITLES_DATA
-INITIAL_SUBSCRIPTIONS = ["netflix", "prime_video", "hotstar", "jiocinema"]
+INITIAL_SUBSCRIPTIONS = ["netflix", "prime_video", "hotstar"]
 

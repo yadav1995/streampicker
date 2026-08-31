@@ -29,12 +29,6 @@ PROVIDER_URI_TEMPLATES = {
         "web": "https://www.hotstar.com/in/movies/{id}",
         "tv": "hotstar://movies/{id}"
     },
-    "jiocinema": {
-        "ios": "jiocinema://content/movie/{id}",
-        "android": "jiocinema://content/movie/{id}",
-        "web": "https://www.jiocinema.com/movies/{id}",
-        "tv": "jiocinema://content/movie/{id}"
-    },
     "apple_tv": {
         "ios": "appletv://movie/{id}",
         "android": "appletv://movie/{id}",
