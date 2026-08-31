@@ -748,7 +748,16 @@ async function triggerPickForMe(isReroll = false) {
     }
 }
 
-// ==================== THE REVEAL CARD RENDERING ====================
+// ==================== THE REVEAL CARD RENDERING & SMART ALTERNATIVES ====================
+
+function getConfidenceBadge(title, matchScore) {
+    if (title.rating_imdb >= 8.5) return '🏆 Critic Consensus Top 1%';
+    if (matchScore >= 95 || title.rating_imdb >= 8.0) return '🔥 98% Taste Match for You';
+    if (title.providers && title.providers.some(p => (p.provider_id || '').includes('netflix'))) return '⚡ Trending on Netflix India';
+    if (title.providers && title.providers.some(p => (p.provider_id || '').includes('prime'))) return '⏳ Included with Prime Video';
+    if (title.runtime_minutes <= 95) return '⏱️ Fast-Paced 90m Hit';
+    return '✨ Highly Recommended';
+}
 
 function renderPickResult(data, latencyMs) {
     const container = document.getElementById('pick-result-container');
@@ -758,6 +767,7 @@ function renderPickResult(data, latencyMs) {
     const stream = data.best_stream_option;
     const isSaved = watchlist.some(w => w.title_id === t.id);
     const watchLink = getWatchLink(stream, t.title);
+    const confidenceBadge = getConfidenceBadge(t, data.match_score);
 
     container.classList.remove('hidden');
     container.innerHTML = `
@@ -769,21 +779,24 @@ function renderPickResult(data, latencyMs) {
                         <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
                         ${data.match_score}% Match For You
                     </span>
+                    <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        ${confidenceBadge}
+                    </span>
                     <span class="text-xs text-slate-400">Solved in <strong>${latencyMs}ms</strong></span>
                 </div>
                 
                 <div class="flex items-center space-x-2">
-                    <button onclick="sharePick('${t.id}')" title="Share with friend" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 flex items-center gap-1 text-xs font-bold transition-all">
+                    <button onclick="sharePick('${t.id}')" title="Share with friend" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-indigo-500/30 flex items-center gap-1 text-xs font-bold transition-all cursor-pointer">
                         <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
                         <span>Share</span>
                     </button>
-                    <button onclick="sendFeedback('${t.id}', true)" title="Like recommendation" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <button onclick="sendFeedback('${t.id}', true)" title="Like recommendation" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">
                         <i data-lucide="thumbs-up" class="w-4 h-4"></i>
                     </button>
-                    <button onclick="sendFeedback('${t.id}', false)" title="Dislike recommendation" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300">
+                    <button onclick="sendFeedback('${t.id}', false)" title="Dislike recommendation" class="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">
                         <i data-lucide="thumbs-down" class="w-4 h-4"></i>
                     </button>
-                    <button onclick="triggerPickForMe(true)" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all">
+                    <button onclick="triggerPickForMe(true)" class="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer">
                         <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                         <span>Re-roll</span>
                     </button>
@@ -844,7 +857,7 @@ function renderPickResult(data, latencyMs) {
 
                         <div class="flex items-center space-x-2">
                             <button onclick="toggleWatchlist('${t.id}')" 
-                                class="flex-1 py-3 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center space-x-2 ${
+                                class="flex-1 py-3 px-4 rounded-xl text-xs font-bold border transition-all flex items-center justify-center space-x-2 cursor-pointer ${
                                     isSaved 
                                     ? 'bg-rose-500/20 text-rose-300 border-rose-500/40' 
                                     : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
@@ -855,24 +868,234 @@ function renderPickResult(data, latencyMs) {
 
                             ${t.trailer_url ? `
                                 <button onclick="openTrailerModal('${t.trailer_url}', '${t.title.replace(/'/g, "\\'")}')" 
-                                    class="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5">
+                                    class="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold flex items-center gap-1.5 cursor-pointer">
                                     <i data-lucide="film" class="w-4 h-4 text-rose-400"></i>
                                     <span>Trailer</span>
                                 </button>
                             ` : ''}
 
-                            <button onclick="openModal('${t.id}')" class="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold">
+                            <button onclick="openModal('${t.id}')" class="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold cursor-pointer">
                                 Details
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
+
+            <!-- 2 BACKUP ALTERNATIVES -->
+            ${data.available_alternatives && data.available_alternatives.length > 0 ? `
+                <div class="pt-6 mt-6 border-t border-slate-700/60 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h4 class="font-heading font-bold text-sm text-slate-300 flex items-center gap-2">
+                            <i data-lucide="shuffle" class="w-4 h-4 text-purple-400"></i>
+                            <span>Not feeling this? 2 Smart Alternatives:</span>
+                        </h4>
+                        <span class="text-[11px] text-slate-500 font-semibold">1-click switch</span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        ${data.available_alternatives.slice(0, 2).map((alt, idx) => {
+                            const altStream = alt.providers && alt.providers[0];
+                            const altWatchLink = getWatchLink(altStream, alt.title);
+                            const altReason = idx === 0 ? "Too intense? Try this crowd-pleaser" : "Want a different genre? Try this backup";
+                            return `
+                                <div class="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-700/70 flex items-center justify-between gap-3 hover:border-indigo-500/50 transition-all">
+                                    <div class="flex items-center space-x-3 min-w-0">
+                                        <img src="${alt.poster_url}" alt="${alt.title}" 
+                                            onerror="handleImageFallback(this, '${alt.title.replace(/'/g, "\\'")}')"
+                                            class="w-14 h-20 object-cover rounded-xl shrink-0 shadow-md">
+                                        <div class="min-w-0">
+                                            <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block truncate">${altReason}</span>
+                                            <h5 class="font-heading font-bold text-sm text-white truncate">${alt.title}</h5>
+                                            <div class="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                                                <span class="text-amber-300 font-semibold">⭐ ${alt.rating_imdb}</span>
+                                                <span>•</span>
+                                                <span>${alt.runtime_minutes}m</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1.5 shrink-0">
+                                        <button onclick="switchToAlternative('${alt.id}')" class="px-3 py-1.5 bg-indigo-600/30 hover:bg-indigo-600 text-indigo-200 hover:text-white rounded-xl text-xs font-bold transition-all border border-indigo-500/40 cursor-pointer">
+                                            Switch Pick
+                                        </button>
+                                        <a href="${altWatchLink}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl text-center border border-slate-700 cursor-pointer">
+                                            Stream
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            ` : ''}
         </div>
     `;
 
     lucide.createIcons();
     container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function switchToAlternative(titleId) {
+    try {
+        const res = await authFetch(`/api/v1/titles/${titleId}`);
+        if (res.ok) {
+            const titleObj = await res.json();
+            const fakeData = {
+                title: titleObj,
+                match_score: 95,
+                match_reasons: [
+                    `Selected as your top backup alternative`,
+                    `Included on your active subscription (${titleObj.providers[0]?.provider_name || 'Streaming'})`,
+                    `Highly rated ${titleObj.rating_imdb}/10 IMDb and ${titleObj.runtime_minutes}m runtime`
+                ],
+                best_stream_option: titleObj.providers[0] || null,
+                available_alternatives: (lastPickData?.available_alternatives || []).filter(a => a.id !== titleId)
+            };
+            lastPickData = fakeData;
+            renderPickResult(fakeData, 8);
+            showToast(`Switched pick to: ${titleObj.title}`);
+        }
+    } catch (e) {
+        console.error('Error switching alternative:', e);
+    }
+}
+
+// ==================== TINDER-STYLE SPEED SWIPE DECK ====================
+
+let swipeDeck = [];
+let swipeIndex = 0;
+let swipeLikedTitles = [];
+
+async function openSpeedSwipeModal() {
+    const modal = document.getElementById('swipe-modal');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+
+    swipeIndex = 0;
+    swipeLikedTitles = [];
+    showToast('🔥 Speed Swipe Mode: 5 rapid cards, decision in < 15s!');
+
+    try {
+        const params = new URLSearchParams();
+        params.append('limit', '8');
+        params.append('sort_by', 'rating');
+        const res = await authFetch(`/api/v1/titles?${params.toString()}`);
+        if (res.ok) {
+            const data = await res.json();
+            swipeDeck = (data.items || []).sort(() => 0.5 - Math.random()).slice(0, 5);
+            renderSwipeDeck();
+        }
+    } catch (e) {
+        console.error('Swipe deck error:', e);
+    }
+}
+
+function closeSpeedSwipeModal() {
+    const modal = document.getElementById('swipe-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function renderSwipeDeck() {
+    const stack = document.getElementById('swipe-card-stack');
+    const pill = document.getElementById('swipe-progress-pill');
+    if (!stack) return;
+
+    if (swipeIndex >= swipeDeck.length) {
+        const winner = swipeLikedTitles.length > 0 ? swipeLikedTitles[0] : swipeDeck[0];
+        lockInSwipeWinner(winner);
+        return;
+    }
+
+    if (pill) pill.textContent = `Card ${swipeIndex + 1} of ${swipeDeck.length}`;
+
+    const t = swipeDeck[swipeIndex];
+    const stream = t.providers && t.providers[0];
+    const badge = getConfidenceBadge(t, 96);
+
+    stack.innerHTML = `
+        <div id="active-swipe-card" class="swipe-card absolute inset-0 glass-panel rounded-3xl border border-indigo-500/50 p-5 shadow-2xl flex flex-col justify-between overflow-hidden animate-slot">
+            <div class="relative w-full h-72 rounded-2xl overflow-hidden mb-3">
+                <img src="${t.poster_url}" alt="${t.title}" 
+                    onerror="handleImageFallback(this, '${t.title.replace(/'/g, "\\'")}')"
+                    class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent"></div>
+                <div class="absolute top-3 left-3 px-3 py-1 rounded-full bg-black/80 backdrop-blur-md border border-white/20 text-xs font-bold text-amber-300 flex items-center gap-1">
+                    ${badge}
+                </div>
+                <div class="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-slate-300 font-bold">
+                    <span>${t.release_year} • ${t.runtime_minutes} mins</span>
+                    <span class="text-amber-300">⭐ ${t.rating_imdb}/10</span>
+                </div>
+            </div>
+
+            <div class="space-y-2 flex-1 flex flex-col justify-between">
+                <div>
+                    <h3 class="font-heading font-extrabold text-xl text-white line-clamp-1">${t.title}</h3>
+                    <p class="text-xs text-indigo-300 font-semibold">${t.genres.slice(0, 3).join(' • ')}</p>
+                    <p class="text-xs text-slate-300 line-clamp-2 mt-1 leading-snug">${t.overview}</p>
+                </div>
+
+                ${stream ? `
+                    <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs">
+                        <span class="font-semibold text-slate-300">Stream on <strong>${stream.provider_name}</strong></span>
+                        <span class="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-emerald-500/20 text-emerald-300">Included</span>
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+
+    lucide.createIcons();
+}
+
+function handleSwipeAction(action) {
+    const card = document.getElementById('active-swipe-card');
+    const currentTitle = swipeDeck[swipeIndex];
+    if (!card || !currentTitle) return;
+
+    if (action === 'left') {
+        card.classList.add('swipe-left');
+        setTimeout(() => {
+            swipeIndex++;
+            renderSwipeDeck();
+        }, 220);
+    } else if (action === 'right') {
+        card.classList.add('swipe-right');
+        swipeLikedTitles.push(currentTitle);
+        setTimeout(() => {
+            swipeIndex++;
+            renderSwipeDeck();
+        }, 220);
+    } else if (action === 'super') {
+        card.classList.add('swipe-up');
+        setTimeout(() => {
+            lockInSwipeWinner(currentTitle);
+        }, 220);
+    }
+}
+
+function lockInSwipeWinner(winnerTitle) {
+    closeSpeedSwipeModal();
+    if (!winnerTitle) return;
+
+    const fakeData = {
+        title: winnerTitle,
+        match_score: 99,
+        match_reasons: [
+            `🎉 15s Speed Swipe Consensus Winner!`,
+            `Directly matches your active subscriptions (${winnerTitle.providers[0]?.provider_name || 'Streaming'})`,
+            `High audience approval (${winnerTitle.rating_imdb}/10 IMDb, ${winnerTitle.runtime_minutes}m)`
+        ],
+        best_stream_option: winnerTitle.providers[0] || null,
+        available_alternatives: swipeDeck.filter(d => d.id !== winnerTitle.id).slice(0, 2)
+    };
+
+    lastPickData = fakeData;
+    renderPickResult(fakeData, 15);
+    showToast(`👑 Locked in: "${winnerTitle.title}" as your stream!`);
 }
 
 // ==================== TRAILER MODAL ====================

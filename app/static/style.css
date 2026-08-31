@@ -124,6 +124,28 @@ input[type=range]::-webkit-slider-thumb:hover {
     animation: slotReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* Swipe Card Deck Styles */
+.swipe-card {
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
+    touch-action: none;
+    user-select: none;
+}
+
+.swipe-left {
+    transform: translateX(-150%) rotate(-25deg) !important;
+    opacity: 0 !important;
+}
+
+.swipe-right {
+    transform: translateX(150%) rotate(25deg) !important;
+    opacity: 0 !important;
+}
+
+.swipe-up {
+    transform: translateY(-150%) scale(1.1) !important;
+    opacity: 0 !important;
+}
+
 /* Glowing text and borders */
 .glow-text {
     text-shadow: 0 0 20px rgba(99, 102, 241, 0.6);
