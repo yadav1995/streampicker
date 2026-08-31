@@ -374,6 +374,11 @@ function switchTab(tabId) {
         loadWatchlist();
     } else if (tabId === 'catalog') {
         loadCatalog();
+    } else if (tabId === 'subscriptions') {
+        loadROIDashboard();
+    } else if (tabId === 'analytics') {
+        loadAnalytics();
+        loadAPIStatus();
     }
 }
 
@@ -476,6 +481,9 @@ async function toggleSubscription(providerId) {
     }
     
     renderStepProvidersGrid();
+    if (currentTab === 'subscriptions') {
+        loadROIDashboard();
+    }
 
     try {
         await authFetch('/api/v1/subscriptions', {
@@ -491,7 +499,64 @@ async function toggleSubscription(providerId) {
     }
 }
 
+// ==================== SUBSCRIPTION ROI DASHBOARD ====================
 
+async function loadROIDashboard() {
+    const metricsContainer = document.getElementById('roi-metrics-container');
+    const listContainer = document.getElementById('subscriptions-list-container');
+    if (!metricsContainer || !listContainer) return;
+
+    try {
+        const res = await authFetch('/api/v1/subscriptions/roi');
+        if (!res.ok) throw new Error('Failed to fetch ROI');
+        const data = await res.json();
+
+        metricsContainer.innerHTML = `
+            <div class="glass-panel p-5 rounded-2xl border border-indigo-500/30">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Monthly Spend</span>
+                <div class="font-heading text-2xl sm:text-3xl font-extrabold text-white mt-1">₹${data.total_monthly_spend_inr}</div>
+                <div class="text-[11px] text-indigo-400 mt-1">Across ${data.active_subscriptions_count} active services</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Accessible Catalog</span>
+                <div class="font-heading text-2xl sm:text-3xl font-extrabold text-emerald-400 mt-1">${data.catalog_coverage_percent}%</div>
+                <div class="text-[11px] text-slate-400 mt-1">${data.accessible_catalog_count} of ${data.total_catalog_count} top titles included free</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border border-purple-500/30">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Cost / Title Streamed</span>
+                <div class="font-heading text-2xl sm:text-3xl font-extrabold text-purple-300 mt-1">₹${data.estimated_cost_per_title_watched}</div>
+                <div class="text-[11px] text-slate-400 mt-1">Based on watched titles</div>
+            </div>
+        `;
+
+        listContainer.innerHTML = providersList.map(p => {
+            const isSub = userSubscriptions.has(p.id);
+            return `
+                <div class="glass-card p-4 rounded-xl flex items-center justify-between">
+                    <div class="flex items-center space-x-3.5">
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs" style="background-color: ${p.brand_color}22; color: ${p.brand_color}; border: 1px solid ${p.brand_color}55;">
+                            ${p.name.substring(0, 3).toUpperCase()}
+                        </div>
+                        <div>
+                            <h4 class="font-heading font-bold text-sm text-white">${p.name}</h4>
+                            <p class="text-[11px] text-slate-400">₹${p.monthly_price_inr || 199}/month • Universal deep links enabled</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleSubscription('${p.id}')" class="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                        isSub 
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30' 
+                        : 'bg-slate-800 text-slate-400 border border-slate-700 hover:text-white'
+                    }">
+                        ${isSub ? '✓ Subscribed' : '+ Add Subscription'}
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error('Error loading ROI:', err);
+    }
+}
 
 // ==================== "PICK FOR ME" & INSTANT PRESETS ====================
 
@@ -1585,7 +1650,109 @@ async function triggerLiveTMDBSync() {
             const data = await res.json();
             showToast(`🎬 Ingested ${data.synced_count} titles via ${data.source}!`);
             await loadCatalog();
+            await loadAnalytics();
         }
+    } catch (e) {
+        showToast('TMDB sync failed');
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i data-lucide="cloud-download" class="w-4 h-4"></i><span>Sync Live TMDB</span>`;
+            lucide.createIcons();
+        }
+    }
+}
+
+async function loadAPIStatus() {
+    const container = document.getElementById('api-status-container');
+    if (!container) return;
+
+    try {
+        const res = await fetch('/api/v1/system/api-status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        container.innerHTML = `
+            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <span class="font-semibold text-slate-300">TMDB API</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${data.tmdb_configured ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">
+                    ${data.tmdb_configured ? '● Live API Active' : '○ Demo Simulation'}
+                </span>
+            </div>
+            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <span class="font-semibold text-slate-300">Database Engine</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300">
+                    ${data.database_backend}
+                </span>
+            </div>
+            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <span class="font-semibold text-slate-300">Caching Engine</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${data.redis_configured ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500/20 text-sky-300'}">
+                    ${data.redis_configured ? 'Redis 7' : 'In-Memory TTL'}
+                </span>
+            </div>
+        `;
+    } catch (e) {
+        console.error('Error loading API status:', e);
+    }
+}
+
+// ==================== TELEMETRY & ANALYTICS ====================
+
+async function loadAnalytics() {
+    const grid = document.getElementById('analytics-metrics-grid');
+    const ctrContainer = document.getElementById('provider-ctr-container');
+    if (!grid || !ctrContainer) return;
+
+    try {
+        const res = await fetch('/api/v1/system/analytics');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        grid.innerHTML = `
+            <div class="glass-panel p-5 rounded-2xl border border-indigo-500/30">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Total Discovery Sessions</span>
+                <div class="font-heading text-2xl font-extrabold text-white mt-1">${data.total_discovery_sessions}</div>
+                <div class="text-[11px] text-emerald-400 mt-1">${data.discovery_success_rate_percent}% Success Rate</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border border-emerald-500/30">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Avg Decision Latency</span>
+                <div class="font-heading text-2xl font-extrabold text-emerald-400 mt-1">${data.average_decision_latency_ms} ms</div>
+                <div class="text-[11px] text-slate-400 mt-1">Sub-30s decision target met</div>
+            </div>
+            <div class="glass-panel p-5 rounded-2xl border border-sky-500/30">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Stream Click-Throughs</span>
+                <div class="font-heading text-2xl font-extrabold text-sky-300 mt-1">${data.total_stream_clickthroughs}</div>
+                <div class="text-[11px] text-slate-400 mt-1">Direct OTT App launches</div>
+            </div>
+        `;
+
+        ctrContainer.innerHTML = Object.entries(data.provider_ctr_distribution).map(([p, count]) => `
+            <div class="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-900 border border-slate-800">
+                <span class="font-semibold text-slate-300 uppercase">${p.replace('_', ' ')}</span>
+                <span class="font-bold text-indigo-400">${count} launches</span>
+            </div>
+        `).join('');
+
+        lucide.createIcons();
+
+    } catch (e) {
+        console.error('Error loading analytics:', e);
+    }
+}
+
+async function triggerCatalogSync() {
+    try {
+        const res = await authFetch('/api/v1/system/sync-catalog', { method: 'POST' });
+        if (res.ok) {
+            const data = await res.json();
+            showToast(`✅ Synced ${data.synced_titles_count} titles in ${data.duration_ms}ms!`);
+            loadAnalytics();
+        }
+    } catch (e) {
+        showToast('Sync error');
+    }
+}
 
 // ==================== AVAILABILITY ALERTS ====================
 

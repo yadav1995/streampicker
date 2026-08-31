@@ -47,10 +47,6 @@ body {
     box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
 }
 
-button, a, select, input[type="button"], input[type="submit"], .nav-tab-btn, .chip-btn, .provider-toggle-card {
-    cursor: pointer;
-}
-
 /* Interactive Step Chips */
 .chip-btn {
     cursor: pointer;

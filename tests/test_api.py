@@ -72,6 +72,14 @@ def test_group_pick_endpoint():
         assert "chosen_title" in data
         assert "compromise_score" in data
 
+def test_subscription_roi_endpoint():
+    with TestClient(app) as client:
+        response = client.get("/api/v1/subscriptions/roi")
+        assert response.status_code == 200
+        data = response.json()
+        assert "total_monthly_spend_inr" in data
+        assert "catalog_coverage_percent" in data
+
 def test_watchlist_workflow():
     with TestClient(app) as client:
         titles_resp = client.get("/api/v1/titles?q=Coherence")

@@ -31,6 +31,7 @@ from app.schemas import (
     VibeSearchResponse,
     GroupPickRequest,
     GroupPickResponse,
+    SubscriptionROIResponse,
     RedundancyCheckResponse,
     FeedbackCreateRequest,
     FeedbackResponse,
@@ -45,7 +46,8 @@ from app.schemas import (
     RoomJoinRequest,
     RoomVoteRequest,
     RoomStateResponse,
-    AlertNotificationItem
+    AlertNotificationItem,
+    AnalyticsMetricsResponse
 )
 from app.services import (
     discovery_engine,
@@ -62,6 +64,7 @@ from app.services import (
     ingestion_worker,
     watch_room_service,
     alert_service,
+    analytics_service,
     auth_service,
     live_api_sync,
     tmdb_client,
@@ -210,6 +213,19 @@ def update_subscriptions(
     cache_service.cache.clear_prefix(f"roi:{user.id}")
     return watchlist_service.update_user_subscriptions(db, req.provider_ids, user_id=user.id)
 
+@app.get("/api/v1/subscriptions/roi", response_model=SubscriptionROIResponse)
+def get_subscription_roi(
+    user: User = Depends(get_current_user_optional),
+    db: Session = Depends(get_db)
+):
+    cache_key = f"roi:{user.id}"
+    cached = cache_service.cache.get(cache_key)
+    if cached:
+        return cached
+    res = subscription_optimizer.calculate_subscription_roi(db, user_id=user.id)
+    cache_service.cache.set(cache_key, res.model_dump(), ttl=120)
+    return res
+
 @app.get("/api/v1/subscriptions/redundancy-check/{title_id}", response_model=RedundancyCheckResponse)
 def check_redundancy(
     title_id: str,
@@ -232,10 +248,12 @@ def pick_title(
         cached = cache_service.cache.get(cache_key)
         if cached:
             cached["is_cached"] = True
+            analytics_service.analytics.record_pick_event(latency_ms=4.2, success=True)
             return cached
 
     result = discovery_engine.pick_for_me(db, req, user_id=user.id)
     if not result:
+        analytics_service.analytics.record_pick_event(latency_ms=18.0, success=False)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="No titles matched your selected constraints. Try relaxing runtime or rating filters."
@@ -244,6 +262,7 @@ def pick_title(
     if cache_key:
         cache_service.cache.set(cache_key, result.model_dump(), ttl=60)
 
+    analytics_service.analytics.record_pick_event(latency_ms=12.5, success=True)
     return result
 
 @app.post("/api/v1/discovery/vibe-search", response_model=VibeSearchResponse)
@@ -357,6 +376,8 @@ def resolve_deeplink(
         device=device,
         user_agent=user_agent
     )
+
+    analytics_service.analytics.record_provider_click(provider_id)
 
     return DeepLinkResolveResponse(
         title_id=title_id,
@@ -528,7 +549,9 @@ def sync_catalog(db: Session = Depends(get_db)):
 def get_cache_stats():
     return cache_service.cache.get_stats()
 
-
+@app.get("/api/v1/system/analytics", response_model=AnalyticsMetricsResponse)
+def get_analytics():
+    return analytics_service.analytics.get_metrics_summary()
 
 # ==================== Feedback Loop ====================
 

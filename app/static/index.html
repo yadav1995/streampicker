@@ -95,6 +95,14 @@
                 <span>Watchlist</span>
                 <span id="watchlist-count-badge" class="ml-1 px-1.5 py-0.2 bg-indigo-500/30 text-indigo-300 text-[10px] rounded-full">0</span>
             </button>
+            <button onclick="switchTab('subscriptions')" id="tab-btn-subscriptions" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="wallet" class="w-4 h-4 text-emerald-400"></i>
+                <span class="hidden md:inline">ROI</span>
+            </button>
+            <button onclick="switchTab('analytics')" id="tab-btn-analytics" class="nav-tab-btn px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold flex items-center space-x-1.5 transition-all text-slate-400 hover:text-slate-200">
+                <i data-lucide="activity" class="w-4 h-4 text-sky-400"></i>
+                <span class="hidden md:inline">Telemetry</span>
+            </button>
         </nav>
     </header>
 
@@ -527,6 +535,54 @@
             <div id="watchlist-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
         </section>
 
+        <!-- ==================== TAB 6: SUBSCRIPTION ROI & SPEND ==================== -->
+        <section id="tab-subscriptions" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+            <div>
+                <h2 class="font-heading text-2xl font-bold text-white">Subscription Portfolio & Cost Optimizer</h2>
+                <p class="text-xs sm:text-sm text-slate-400">Understand your monthly streaming spend, catalog coverage, and avoid paying for redundant movie rentals.</p>
+            </div>
+
+            <div id="roi-metrics-container" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+
+            <div class="space-y-4 pt-4">
+                <h3 class="font-heading font-bold text-lg text-white">Active Streaming Platforms</h3>
+                <div id="subscriptions-list-container" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- ==================== TAB 7: PLATFORM ANALYTICS & TELEMETRY ==================== -->
+        <section id="tab-analytics" class="tab-content hidden space-y-6 max-w-4xl mx-auto">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                    <h2 class="font-heading text-2xl font-bold text-white">System Telemetry & Live Sync</h2>
+                    <p class="text-xs sm:text-sm text-slate-400">Real-time metrics tracking discovery latency, TMDB sync, and cache hit efficiency.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="triggerLiveTMDBSync()" id="tmdb-sync-btn" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow-sm">
+                        <i data-lucide="cloud-download" class="w-4 h-4"></i>
+                        <span>Sync Live TMDB</span>
+                    </button>
+                    <button onclick="triggerCatalogSync()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-xl border border-slate-700 flex items-center gap-1.5">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                        <span>Simulate Sync</span>
+                    </button>
+                </div>
+            </div>
+
+            <div id="analytics-metrics-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-4"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="glass-panel p-6 rounded-2xl border border-slate-700 space-y-3">
+                    <h3 class="font-heading font-bold text-base text-white">Streaming Provider Launches (CTR)</h3>
+                    <div id="provider-ctr-container" class="space-y-2"></div>
+                </div>
+                <div class="glass-panel p-6 rounded-2xl border border-slate-700 space-y-3">
+                    <h3 class="font-heading font-bold text-base text-white">Upstream API Status</h3>
+                    <div id="api-status-container" class="space-y-2"></div>
+                </div>
+            </div>
+        </section>
+
     </main>
 
     <!-- Title Details Modal -->
@@ -548,23 +604,6 @@
             </div>
             <div id="trailer-iframe-container" class="w-full aspect-video rounded-xl overflow-hidden bg-black">
                 <!-- Iframe injected by JS -->
-            </div>
-        </div>
-    <!-- Availability Alerts Modal -->
-    <div id="alerts-modal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden items-center justify-center p-4">
-        <div class="bg-dark-800 border border-slate-700/80 rounded-2xl max-w-md w-full p-6 relative shadow-2xl space-y-4">
-            <button onclick="toggleAlertsModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white"><i data-lucide="x" class="w-5 h-5"></i></button>
-            
-            <div>
-                <h3 class="font-heading font-extrabold text-xl text-white flex items-center gap-2">
-                    <i data-lucide="bell" class="w-5 h-5 text-indigo-400"></i>
-                    <span>Availability Alerts</span>
-                </h3>
-                <p class="text-xs text-slate-400 mt-1">Notifications when watchlisted titles become available on your services.</p>
-            </div>
-
-            <div id="alerts-list-container" class="space-y-3 max-h-80 overflow-y-auto">
-                <div class="text-center py-6 text-slate-500 text-xs">No pending availability alerts.</div>
             </div>
         </div>
     </div>
